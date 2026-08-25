@@ -1,5 +1,7 @@
 # PrintGearWizard
 
+<img src="images/PrintGearWizard_TitelLogo.png" alt="PrintGear Wizard Logo" width="420">
+
 PrintGearWizard is an open-source Autodesk Fusion add-in for creating configurable, 3D-print-friendly spur gears and simple multi-stage gear trains.
 
 The first release focuses on standard external involute spur gears and one to four reduction stages. Users enter the common gear parameters and the tooth counts for each stage; the add-in calculates the gear geometry, ratios, center distances, shaft assignments, rotation directions, and Fusion component placement.
