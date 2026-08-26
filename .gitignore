@@ -216,3 +216,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Autodesk Fusion add-in development
+# Keep the template runtime helpers and manifest in version control even though
+# the generic Python/PyInstaller rules above ignore lib/ and *.manifest.
+!fusion_addin/PrintGearWizard/lib/
+!fusion_addin/PrintGearWizard/lib/**/
+!fusion_addin/PrintGearWizard/lib/**/*.py
+!fusion_addin/PrintGearWizard/PrintGearWizard.manifest
+
+# Fusion and local test runs may create these machine-specific artifacts.
+fusion_addin/PrintGearWizard/.fusion/
+fusion_addin/PrintGearWizard/logs/
+fusion_addin/PrintGearWizard/tmp/
+fusion_addin/PrintGearWizard/**/*.bak
+fusion_addin/PrintGearWizard/**/*~
+fusion_addin/PrintGearWizard/**/.DS_Store
+fusion_addin/PrintGearWizard/**/Thumbs.db

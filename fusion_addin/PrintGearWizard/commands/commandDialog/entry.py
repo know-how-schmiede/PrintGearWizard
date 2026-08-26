@@ -2,14 +2,15 @@ import adsk.core
 import os
 from ...lib import fusionAddInUtils as futil
 from ... import config
+from ...version import VERSION
 app = adsk.core.Application.get()
 ui = app.userInterface
 
 
 # TODO *** Specify the command identity information. ***
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_cmdDialog'
-CMD_NAME = 'Command Dialog Sample'
-CMD_Description = 'A Fusion Add-in Command with a dialog'
+CMD_NAME = f'PrintGearWizard {VERSION}'
+CMD_Description = 'Create 3D-print-friendly spur gears and gear trains.'
 
 # Specify that the command will be promoted to the panel.
 IS_PROMOTED = True
@@ -19,8 +20,7 @@ IS_PROMOTED = True
 # command it will be inserted beside. Not providing the command to position it
 # will insert it at the end.
 WORKSPACE_ID = 'FusionSolidEnvironment'
-PANEL_ID = 'SolidScriptsAddinsPanel'
-COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
+PANEL_ID = 'SolidCreatePanel'
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '')
@@ -46,7 +46,7 @@ def start():
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
 
     # Create the button command control in the UI after the specified existing command.
-    control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
+    control = panel.controls.addCommand(cmd_def)
 
     # Specify if the command is promoted to the main toolbar. 
     control.isPromoted = IS_PROMOTED
@@ -78,15 +78,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # https://help.autodesk.com/view/fusion360/ENU/?contextId=CommandInputs
     inputs = args.command.commandInputs
 
-    # TODO Define the dialog for your command by adding different inputs to the command.
-
-    # Create a simple text box input.
-    inputs.addTextBoxCommandInput('text_box', 'Some Text', 'Enter some text.', 1, False)
-
-    # Create a value input field and set the default using 1 unit of the default length unit.
-    defaultLengthUnits = app.activeProduct.unitsManager.defaultLengthUnits
-    default_value = adsk.core.ValueInput.createByString('1')
-    inputs.addValueInput('value_input', 'Some Value', defaultLengthUnits, default_value)
+    inputs.addTextBoxCommandInput(
+        'milestone_info',
+        'Status',
+        'PrintGearWizard is ready. Gear configuration will be added in the next milestone.',
+        3,
+        True,
+    )
 
     # TODO Connect to the events that are needed by this command.
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
@@ -104,16 +102,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     # TODO ******************************** Your code here ********************************
 
-    # Get a reference to your command's inputs.
-    inputs = args.command.commandInputs
-    text_box: adsk.core.TextBoxCommandInput = inputs.itemById('text_box')
-    value_input: adsk.core.ValueCommandInput = inputs.itemById('value_input')
-
-    # Do something interesting
-    text = text_box.text
-    expression = value_input.expression
-    msg = f'Your text: {text}<br>Your value: {expression}'
-    ui.messageBox(msg)
+    # Milestone 0 intentionally performs no model changes.
 
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
@@ -139,14 +128,7 @@ def command_validate_input(args: adsk.core.ValidateInputsEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Validate Input Event')
 
-    inputs = args.inputs
-    
-    # Verify the validity of the input values. This controls if the OK button is enabled or not.
-    valueInput = inputs.itemById('value_input')
-    if valueInput.value >= 0:
-        args.areInputsValid = True
-    else:
-        args.areInputsValid = False
+    args.areInputsValid = True
         
 
 # This event handler is called when the command terminates.

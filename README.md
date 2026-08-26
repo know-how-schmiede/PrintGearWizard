@@ -1,4 +1,4 @@
-# PrintGearWizard
+# PrintGearWizard 0.1.0
 
 <img src="images/PrintGearWizard_TitelLogo.png" alt="PrintGear Wizard Logo" width="420">
 
@@ -21,14 +21,16 @@ The first release focuses on standard external involute spur gears and one to fo
 
 ## Project status
 
-Initial design and implementation planning.
+Version 0.1.0 provides the executable Fusion add-in skeleton. It registers a
+PrintGearWizard command under **Design > Solid > Create**, displays the project
+icon, and opens the initial dialog without modifying the active design.
 
 ## Documentation
 
 - [Codex implementation guide](docs/CODEX_PROJECT_GUIDE.md)
 - [GitHub repository setup](docs/GITHUB_SETUP.md)
+- [Version timeline](docs/version-timeline.md)
 
 ## Trademark notice
 
 Autodesk and Autodesk Fusion are registered trademarks or trademarks of Autodesk, Inc. PrintGearWizard is an independent project and is not affiliated with or endorsed by Autodesk.
-
