@@ -1,139 +1,412 @@
-import adsk.core
+"""PrintGearWizard command registration and standard dialog."""
+
+import math
 import os
-from ...lib import fusionAddInUtils as futil
+
+import adsk.core
+import adsk.fusion
+
 from ... import config
+from ...core import (
+    GearStandard,
+    GearTrainSpec,
+    RotationDirection,
+    StageInput,
+    calculate_stage_results,
+    calculate_total_ratio,
+    output_rotation_direction,
+)
+from ...lib import fusionAddInUtils as futil
 from ...version import VERSION
+
+
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-
-# TODO *** Specify the command identity information. ***
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_cmdDialog'
 CMD_NAME = f'PrintGearWizard {VERSION}'
 CMD_Description = 'Create 3D-print-friendly spur gears and gear trains.'
 
-# Specify that the command will be promoted to the panel.
 IS_PROMOTED = True
-
-# TODO *** Define the location where the command button will be created. ***
-# This is done by specifying the workspace, the tab, and the panel, and the 
-# command it will be inserted beside. Not providing the command to position it
-# will insert it at the end.
 WORKSPACE_ID = 'FusionSolidEnvironment'
 PANEL_ID = 'SolidCreatePanel'
-
-# Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '')
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
+MAX_STAGE_COUNT = 4
+DEFAULT_DRIVER_TEETH = 15
+DEFAULT_DRIVEN_TEETH = 45
+PROFILE_BACKLASH_MM = {
+    'FDM Standard': 0.20,
+    'FDM Fine': 0.15,
+    'Resin': 0.10,
+    'Custom': 0.15,
+}
+
 local_handlers = []
+backlash_manually_edited = False
+updating_dialog = False
 
 
-# Executed when add-in is run.
 def start():
-    # Create a command Definition.
-    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER)
-
-    # Define an event handler for the command created event. It will be called when the button is clicked.
+    cmd_def = ui.commandDefinitions.addButtonDefinition(
+        CMD_ID,
+        CMD_NAME,
+        CMD_Description,
+        ICON_FOLDER,
+    )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # ******** Add a button into the UI so the user can run the command. ********
-    # Get the target workspace the button will be created in.
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
-
-    # Get the panel the button will be created in.
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
-
-    # Create the button command control in the UI after the specified existing command.
     control = panel.controls.addCommand(cmd_def)
-
-    # Specify if the command is promoted to the main toolbar. 
     control.isPromoted = IS_PROMOTED
 
 
-# Executed when add-in is stopped.
 def stop():
-    # Get the various UI elements for this command
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_control = panel.controls.itemById(CMD_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
 
-    # Delete the button command control
     if command_control:
         command_control.deleteMe()
-
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
-# Function that is called when a user clicks the corresponding button in the UI.
-# This defines the contents of the command dialog and connects to the command related events.
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    # General logging for debug.
     futil.log(f'{CMD_NAME} Command Created Event')
 
-    # https://help.autodesk.com/view/fusion360/ENU/?contextId=CommandInputs
-    inputs = args.command.commandInputs
+    global backlash_manually_edited
+    backlash_manually_edited = False
 
-    inputs.addTextBoxCommandInput(
-        'milestone_info',
-        'Status',
-        'PrintGearWizard is ready. Gear configuration will be added in the next milestone.',
-        3,
+    command = args.command
+    command.setDialogInitialSize(560, 720)
+    command.setDialogMinimumSize(480, 600)
+    inputs = command.commandInputs
+
+    _add_basic_data_tab(inputs)
+    _add_stages_tab(inputs)
+    _add_construction_tab(inputs)
+    _update_dialog(inputs)
+
+    futil.add_handler(command.execute, command_execute, local_handlers=local_handlers)
+    futil.add_handler(command.inputChanged, command_input_changed, local_handlers=local_handlers)
+    futil.add_handler(command.executePreview, command_preview, local_handlers=local_handlers)
+    futil.add_handler(command.validateInputs, command_validate_input, local_handlers=local_handlers)
+    futil.add_handler(command.destroy, command_destroy, local_handlers=local_handlers)
+
+
+def _add_basic_data_tab(inputs: adsk.core.CommandInputs):
+    tab = inputs.addTabCommandInput('basicTab', 'Basic data')
+    tab_inputs = tab.children
+
+    tab_inputs.addIntegerSpinnerCommandInput(
+        'stageCount',
+        'Number of stages',
+        1,
+        MAX_STAGE_COUNT,
+        1,
+        2,
+    )
+    tab_inputs.addValueInput(
+        'module',
+        'Module',
+        'mm',
+        adsk.core.ValueInput.createByString('1.0 mm'),
+    )
+    pressure_angle = tab_inputs.addValueInput(
+        'pressureAngle',
+        'Pressure angle',
+        'deg',
+        adsk.core.ValueInput.createByString('20 deg'),
+    )
+    pressure_angle.isReadOnly = True
+    tab_inputs.addValueInput(
+        'faceWidth',
+        'Gear width',
+        'mm',
+        adsk.core.ValueInput.createByString('8.0 mm'),
+    )
+    tab_inputs.addValueInput(
+        'backlash',
+        'Mesh backlash',
+        'mm',
+        adsk.core.ValueInput.createByString('0.15 mm'),
+    )
+
+    profile = tab_inputs.addDropDownCommandInput(
+        'printProfile',
+        'Print profile',
+        adsk.core.DropDownStyles.TextListDropDownStyle,
+    )
+    for name in PROFILE_BACKLASH_MM:
+        profile.listItems.add(name, name == 'FDM Fine', '')
+
+
+def _add_stages_tab(inputs: adsk.core.CommandInputs):
+    tab = inputs.addTabCommandInput('stagesTab', 'Gear stages')
+    tab_inputs = tab.children
+
+    for stage_index in range(1, MAX_STAGE_COUNT + 1):
+        group = tab_inputs.addGroupCommandInput(
+            f'stageGroup_{stage_index}',
+            f'Stage {stage_index}',
+        )
+        group.isExpanded = stage_index <= 2
+        stage_inputs = group.children
+        stage_inputs.addIntegerSpinnerCommandInput(
+            f'driverTeeth_{stage_index}',
+            'Driver gear teeth',
+            4,
+            400,
+            1,
+            DEFAULT_DRIVER_TEETH,
+        )
+        stage_inputs.addIntegerSpinnerCommandInput(
+            f'drivenTeeth_{stage_index}',
+            'Driven gear teeth',
+            4,
+            400,
+            1,
+            DEFAULT_DRIVEN_TEETH,
+        )
+        stage_inputs.addTextBoxCommandInput(
+            f'stageRatio_{stage_index}',
+            'Stage ratio',
+            '',
+            1,
+            True,
+        )
+        stage_inputs.addTextBoxCommandInput(
+            f'centerDistance_{stage_index}',
+            'Center distance',
+            '',
+            1,
+            True,
+        )
+        warning = stage_inputs.addTextBoxCommandInput(
+            f'stageWarning_{stage_index}',
+            'Warning',
+            '',
+            2,
+            True,
+        )
+        warning.isVisible = False
+
+    summary = tab_inputs.addGroupCommandInput('summaryGroup', 'Summary')
+    summary_inputs = summary.children
+    summary_inputs.addTextBoxCommandInput('totalRatio', 'Total ratio', '', 1, True)
+    summary_inputs.addTextBoxCommandInput('physicalGearCount', 'Physical gears', '', 1, True)
+    summary_inputs.addTextBoxCommandInput('shaftCount', 'Shafts', '', 1, True)
+    summary_inputs.addTextBoxCommandInput(
+        'outputDirection',
+        'Output rotation',
+        '',
+        1,
         True,
     )
 
-    # TODO Connect to the events that are needed by this command.
-    futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
-    futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
-    futil.add_handler(args.command.executePreview, command_preview, local_handlers=local_handlers)
-    futil.add_handler(args.command.validateInputs, command_validate_input, local_handlers=local_handlers)
-    futil.add_handler(args.command.destroy, command_destroy, local_handlers=local_handlers)
+
+def _add_construction_tab(inputs: adsk.core.CommandInputs):
+    tab = inputs.addTabCommandInput('constructionTab', 'Construction')
+    tab_inputs = tab.children
+
+    plane = tab_inputs.addSelectionInput(
+        'constructionPlane',
+        'Construction plane',
+        'Select a construction plane or planar face.',
+    )
+    plane.addSelectionFilter('ConstructionPlanes')
+    plane.addSelectionFilter('PlanarFaces')
+    plane.setSelectionLimits(0, 1)
+
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    if design:
+        plane.addSelection(design.rootComponent.xYConstructionPlane)
+
+    origin = tab_inputs.addSelectionInput(
+        'startPoint',
+        'Origin / start point',
+        'Optional: select a point or vertex.',
+    )
+    origin.addSelectionFilter('SketchPoints')
+    origin.addSelectionFilter('Vertices')
+    origin.addSelectionFilter('ConstructionPoints')
+    origin.setSelectionLimits(0, 1)
+
+    layout = tab_inputs.addDropDownCommandInput(
+        'layoutDirection',
+        'Layout direction',
+        adsk.core.DropDownStyles.TextListDropDownStyle,
+    )
+    layout.listItems.add('Horizontal', True, '')
+    layout.listItems.add('Vertical', False, '')
+
+    bores = tab_inputs.addGroupCommandInput('shaftBoresGroup', 'Shaft bores')
+    bores.isExpanded = True
+    for shaft_index in range(MAX_STAGE_COUNT + 1):
+        bores.children.addValueInput(
+            f'shaftBore_{shaft_index}',
+            f'Shaft {shaft_index + 1} bore',
+            'mm',
+            adsk.core.ValueInput.createByString('5.0 mm'),
+        )
+
+    output_mode = tab_inputs.addTextBoxCommandInput(
+        'outputMode',
+        'Output mode',
+        'Separate components',
+        1,
+        True,
+    )
+    output_mode.isFullWidth = False
+    tab_inputs.addBoolValueInput('previewEnabled', 'Preview enabled', True, '', True)
+
+    tab_inputs.addTextBoxCommandInput(
+        'constructionStatus',
+        'Status',
+        'Dialog preview only — version 0.1.2 creates no geometry.',
+        2,
+        True,
+    )
 
 
-# This event handler is called when the user clicks the OK button in the command dialog or 
-# is immediately called after the created event not command inputs were created for the dialog.
+def _millimetres(value_input: adsk.core.ValueCommandInput) -> float:
+    units_manager = app.activeProduct.unitsManager
+    return units_manager.convert(value_input.value, units_manager.internalUnits, 'mm')
+
+
+def _input(inputs: adsk.core.CommandInputs, input_id: str):
+    """Find an input recursively across tabs and groups."""
+
+    direct_input = inputs.itemById(input_id)
+    if direct_input:
+        return direct_input
+
+    for index in range(inputs.count):
+        candidate = inputs.item(index)
+        tab = adsk.core.TabCommandInput.cast(candidate)
+        if tab:
+            nested_input = _input(tab.children, input_id)
+            if nested_input:
+                return nested_input
+            continue
+
+        group = adsk.core.GroupCommandInput.cast(candidate)
+        if group:
+            nested_input = _input(group.children, input_id)
+            if nested_input:
+                return nested_input
+    return None
+
+
+def _active_stages(inputs: adsk.core.CommandInputs) -> tuple[StageInput, ...]:
+    stage_count = _input(inputs, 'stageCount').value
+    return tuple(
+        StageInput(
+            driver_teeth=_input(inputs, f'driverTeeth_{index}').value,
+            driven_teeth=_input(inputs, f'drivenTeeth_{index}').value,
+        )
+        for index in range(1, stage_count + 1)
+    )
+
+
+def _update_dialog(inputs: adsk.core.CommandInputs):
+    global updating_dialog
+    if updating_dialog:
+        return
+
+    updating_dialog = True
+    try:
+        stage_count = _input(inputs, 'stageCount').value
+        stages = _active_stages(inputs)
+        standard = GearStandard(
+            module_mm=_millimetres(_input(inputs, 'module')),
+            pressure_angle_rad=_input(inputs, 'pressureAngle').value,
+            face_width_mm=_millimetres(_input(inputs, 'faceWidth')),
+            backlash_mm=_millimetres(_input(inputs, 'backlash')),
+        )
+        spec = GearTrainSpec(
+            standard=standard,
+            stages=stages,
+            shaft_bores_mm=tuple(
+                _millimetres(_input(inputs, f'shaftBore_{index}'))
+                for index in range(stage_count + 1)
+            ),
+        )
+        results = calculate_stage_results(spec)
+
+        for index in range(1, MAX_STAGE_COUNT + 1):
+            active = index <= stage_count
+            _input(inputs, f'stageGroup_{index}').isVisible = active
+            _input(inputs, f'shaftBore_{index}').isVisible = index <= stage_count
+            if not active:
+                continue
+
+            stage = stages[index - 1]
+            result = results[index - 1]
+            _input(inputs, f'stageRatio_{index}').text = f'{result.ratio:.4g} : 1'
+            _input(inputs, f'centerDistance_{index}').text = (
+                f'{result.center_distance_mm:.3f} mm'
+            )
+            warnings = []
+            if stage.driver_teeth < 17:
+                warnings.append('Driver has fewer than 17 teeth; undercut may occur.')
+            if stage.driven_teeth < 17:
+                warnings.append('Driven gear has fewer than 17 teeth; undercut may occur.')
+            warning_input = _input(inputs, f'stageWarning_{index}')
+            warning_input.formattedText = '<br>'.join(warnings)
+            warning_input.isVisible = bool(warnings)
+
+        _input(inputs, 'totalRatio').text = f'{calculate_total_ratio(stages):.5g} : 1'
+        _input(inputs, 'physicalGearCount').text = str(2 * stage_count)
+        _input(inputs, 'shaftCount').text = str(stage_count + 1)
+        direction = output_rotation_direction(stage_count)
+        _input(inputs, 'outputDirection').text = (
+            'Same as input'
+            if direction == RotationDirection.SAME
+            else 'Opposite to input'
+        )
+    finally:
+        updating_dialog = False
+
+
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug.
-    futil.log(f'{CMD_NAME} Command Execute Event')
-
-    # TODO ******************************** Your code here ********************************
-
-    # Milestone 0 intentionally performs no model changes.
+    futil.log(f'{CMD_NAME} Command Execute Event — no geometry in version {VERSION}')
 
 
-# This event handler is called when the command needs to compute a new preview in the graphics window.
 def command_preview(args: adsk.core.CommandEventArgs):
-    # General logging for debug.
-    futil.log(f'{CMD_NAME} Command Preview Event')
-    inputs = args.command.commandInputs
+    futil.log(f'{CMD_NAME} Command Preview Event — dialog preview only')
 
 
-# This event handler is called when the user changes anything in the command dialog
-# allowing you to modify values of other inputs based on that change.
 def command_input_changed(args: adsk.core.InputChangedEventArgs):
+    global backlash_manually_edited, updating_dialog
+
     changed_input = args.input
     inputs = args.inputs
+    futil.log(f'{CMD_NAME} Input Changed Event fired from {changed_input.id}')
 
-    # General logging for debug.
-    futil.log(f'{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}')
+    if changed_input.id == 'backlash' and not updating_dialog:
+        backlash_manually_edited = True
+    elif changed_input.id == 'printProfile' and not backlash_manually_edited:
+        selected_profile = changed_input.selectedItem.name
+        backlash_mm = PROFILE_BACKLASH_MM[selected_profile]
+        updating_dialog = True
+        try:
+            _input(inputs, 'backlash').expression = f'{backlash_mm} mm'
+        finally:
+            updating_dialog = False
+
+    _update_dialog(inputs)
 
 
-# This event handler is called when the user interacts with any of the inputs in the dialog
-# which allows you to verify that all of the inputs are valid and enables the OK button.
 def command_validate_input(args: adsk.core.ValidateInputsEventArgs):
-    # General logging for debug.
-    futil.log(f'{CMD_NAME} Validate Input Event')
-
+    # Detailed project validation is the next isolated implementation step.
     args.areInputsValid = True
-        
 
-# This event handler is called when the command terminates.
+
 def command_destroy(args: adsk.core.CommandEventArgs):
-    # General logging for debug.
     futil.log(f'{CMD_NAME} Command Destroy Event')
 
     global local_handlers

@@ -2,6 +2,18 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.1.2 — 2026-08-26
+
+- Added the standard three-tab command dialog for basic data, gear stages, and construction.
+- Added common module, pressure-angle, width, backlash, and print-profile inputs.
+- Added four persistent stage groups whose visibility follows the selected stage count.
+- Added live stage ratios, center distances, total ratio, gear count, shaft count, and rotation direction.
+- Added undercut warnings for gears with fewer than 17 teeth.
+- Added optional construction-plane and start-point selections.
+- Added horizontal/vertical layout selection and dynamically visible bore inputs for all shafts.
+- Added the fixed separate-component output mode and preview option.
+- Kept command execution non-destructive; version 0.1.2 does not create geometry.
+
 ## 0.1.1 — 2026-08-26
 
 - Added pure calculations for standard gear radii and external-gear center distances.
