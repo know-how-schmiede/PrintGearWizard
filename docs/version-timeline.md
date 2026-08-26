@@ -2,6 +2,15 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.1.4 — 2026-08-26
+
+- Added automated unit tests using Python's standard `unittest` framework.
+- Added reference tests for gear radii, center distance, stage ratios, and total ratios.
+- Added gear-count, shaft-assignment, stable-name, and compound-shaft tests for one to four stages.
+- Added horizontal, vertical, and axial placement tests.
+- Added validation tests for stage count, module, bore count, bore wall, backlash, and warnings.
+- Kept the test suite independent of Autodesk Fusion and external test dependencies.
+
 ## 0.1.3 — 2026-08-26
 
 - Added Fusion-independent blocking validation and non-blocking warning results.
