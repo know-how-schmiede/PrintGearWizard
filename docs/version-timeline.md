@@ -2,6 +2,17 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.2.4 — 2026-08-26
+
+- Applied the selected construction plane or planar face to the generated gear-train container.
+- Used the selected plane U/V directions as the local horizontal and vertical layout axes.
+- Used the selected plane normal as the positive extrusion and axial-layer direction.
+- Applied an optional sketch point, construction point, or vertex as the first shaft origin.
+- Used the selected plane origin when no explicit start point is selected.
+- Built one root-space coordinate transform for the complete gear train while preserving all child placements.
+- Added actionable errors for unsupported or non-planar construction selections.
+- Kept the root XY plane as the default construction reference.
+
 ## 0.2.3 — 2026-08-26
 
 - Added pre-generation collision planning based on addendum-circle clearance.

@@ -300,7 +300,10 @@ def _add_construction_tab(inputs: adsk.core.CommandInputs):
     tab_inputs.addTextBoxCommandInput(
         'constructionStatus',
         'Status',
-        f'Version {VERSION} creates all configured gear bodies on confirmation.',
+        (
+            f'Version {VERSION} creates all configured gears on the selected '
+            'plane and optional start point.'
+        ),
         2,
         True,
     )
@@ -372,6 +375,52 @@ def _dialog_spec(inputs: adsk.core.CommandInputs) -> GearTrainSpec:
             for index in range(stage_count + 1)
         ),
     )
+
+
+def _base_transform(inputs: adsk.core.CommandInputs) -> adsk.core.Matrix3D:
+    """Build a root-space coordinate system from the selected plane and point."""
+
+    plane_input = _input(inputs, 'constructionPlane')
+    if plane_input.selectionCount:
+        plane_entity = plane_input.selection(0).entity
+    else:
+        design = adsk.fusion.Design.cast(app.activeProduct)
+        plane_entity = design.rootComponent.xYConstructionPlane
+
+    construction_plane = adsk.fusion.ConstructionPlane.cast(plane_entity)
+    if construction_plane:
+        plane = construction_plane.geometry
+    else:
+        planar_face = adsk.fusion.BRepFace.cast(plane_entity)
+        plane = adsk.core.Plane.cast(planar_face.geometry) if planar_face else None
+    if not plane:
+        raise ValueError('The selected construction entity is not planar.')
+
+    origin = plane.origin
+    point_input = _input(inputs, 'startPoint')
+    if point_input.selectionCount:
+        point_entity = point_input.selection(0).entity
+        sketch_point = adsk.fusion.SketchPoint.cast(point_entity)
+        construction_point = adsk.fusion.ConstructionPoint.cast(point_entity)
+        vertex = adsk.fusion.BRepVertex.cast(point_entity)
+        if sketch_point:
+            origin = sketch_point.worldGeometry
+        elif construction_point:
+            origin = construction_point.geometry
+        elif vertex:
+            origin = vertex.geometry
+        else:
+            raise ValueError('The selected start point is not supported.')
+
+    transform = adsk.core.Matrix3D.create()
+    if not transform.setWithCoordinateSystem(
+        origin,
+        plane.uDirection,
+        plane.vDirection,
+        plane.normal,
+    ):
+        raise ValueError('Could not create a coordinate system from the selections.')
+    return transform
 
 
 def _update_dialog(inputs: adsk.core.CommandInputs):
@@ -458,7 +507,11 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
 def command_execute(args: adsk.core.CommandEventArgs):
     inputs = args.command.commandInputs
     vertical = _input(inputs, 'layoutDirection').selectedItem.name == 'Vertical'
-    bodies = create_gear_train_bodies(_dialog_spec(inputs), vertical=vertical)
+    bodies = create_gear_train_bodies(
+        _dialog_spec(inputs),
+        vertical=vertical,
+        base_transform=_base_transform(inputs),
+    )
     futil.log(f'{CMD_NAME} created and verified {len(bodies)} gear bodies')
 
 

@@ -26,6 +26,7 @@ def create_gear_train_bodies(
     spec: GearTrainSpec,
     *,
     vertical: bool = False,
+    base_transform: adsk.core.Matrix3D | None = None,
 ) -> tuple[adsk.fusion.BRepBody, ...]:
     """Create every derived gear as a positioned internal component."""
 
@@ -37,9 +38,9 @@ def create_gear_train_bodies(
 
     timeline = design.timeline
     timeline_start_index = timeline.count
-    train_occurrence = design.rootComponent.occurrences.addNewComponent(
-        adsk.core.Matrix3D.create()
-    )
+    if base_transform is None:
+        base_transform = adsk.core.Matrix3D.create()
+    train_occurrence = design.rootComponent.occurrences.addNewComponent(base_transform)
     try:
         train_component = train_occurrence.component
         train_component.name = 'PrintGearWizard Gear Train'

@@ -1,4 +1,4 @@
-# PrintGearWizard 0.2.3
+# PrintGearWizard 0.2.4
 
 <img src="images/PrintGearWizard_TitelLogo.png" alt="PrintGear Wizard Logo" width="420">
 
@@ -21,11 +21,12 @@ The first release focuses on standard external involute spur gears and one to fo
 
 ## Project status
 
-Version 0.2.3 provides the executable Fusion add-in skeleton, the first
+Version 0.2.4 provides the executable Fusion add-in skeleton, the first
 Fusion-independent gear-train calculation core, and the standard three-tab
 configuration dialog with live input validation and automated core tests. It
 can create and dimensionally verify every configured gear as a separate,
-positioned component in a compatible hybrid design. The add-in registers a
+positioned component on a selected planar construction reference in a compatible
+hybrid design. The add-in registers a
 PrintGearWizard command under **Design > Solid > Create**, displays the project
 icon, and opens the initial dialog without modifying the active design.
 
