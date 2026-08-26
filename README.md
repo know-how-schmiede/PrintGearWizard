@@ -1,4 +1,4 @@
-# PrintGearWizard 0.1.0
+# PrintGearWizard 0.1.1
 
 <img src="images/PrintGearWizard_TitelLogo.png" alt="PrintGear Wizard Logo" width="420">
 
@@ -21,7 +21,8 @@ The first release focuses on standard external involute spur gears and one to fo
 
 ## Project status
 
-Version 0.1.0 provides the executable Fusion add-in skeleton. It registers a
+Version 0.1.1 provides the executable Fusion add-in skeleton and the first
+Fusion-independent gear-train calculation core. The add-in registers a
 PrintGearWizard command under **Design > Solid > Create**, displays the project
 icon, and opens the initial dialog without modifying the active design.
 
