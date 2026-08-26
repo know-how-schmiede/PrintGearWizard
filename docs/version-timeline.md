@@ -2,6 +2,14 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.2.1 — 2026-08-26
+
+- Documented the top-level `PrintGearWizard Gear Train` component as the required container for all generated gear components.
+- Preserved the container hierarchy so the complete generated train can be moved, hidden, or removed as one occurrence.
+- Collected all component, sketch, and extrusion operations created by one command run into one Fusion timeline group.
+- Named timeline groups with the generated gear count and collapsed them after successful creation.
+- Treated timeline grouping as part of the atomic generation operation and rolled back if grouping fails.
+
 ## 0.2.0 — 2026-08-26
 
 - Added generation of two separate physical gear components for every active stage.

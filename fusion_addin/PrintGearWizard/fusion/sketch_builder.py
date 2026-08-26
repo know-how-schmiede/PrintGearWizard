@@ -35,6 +35,8 @@ def create_gear_train_bodies(
     if len(gears) != len(placements):
         raise RuntimeError('Gear derivation and placement counts do not match.')
 
+    timeline = design.timeline
+    timeline_start_index = timeline.count
     train_occurrence = design.rootComponent.occurrences.addNewComponent(
         adsk.core.Matrix3D.create()
     )
@@ -47,6 +49,18 @@ def create_gear_train_bodies(
         )
         if len(bodies) != 2 * len(spec.stages):
             raise RuntimeError('Generated body count does not match the stage count.')
+        timeline_end_index = timeline.count - 1
+        if timeline_end_index >= timeline_start_index:
+            timeline_group = timeline.timelineGroups.add(
+                timeline_start_index,
+                timeline_end_index,
+            )
+            if not timeline_group:
+                raise RuntimeError('Could not group the generated timeline operations.')
+            timeline_group.name = (
+                f'PrintGearWizard Gear Train — {len(bodies)} Gears'
+            )
+            timeline_group.isCollapsed = True
         return bodies
     except Exception:
         train_occurrence.deleteMe()
