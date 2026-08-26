@@ -11,18 +11,16 @@ from ..core import (
     calculate_gear_geometry,
     derive_gears,
 )
+from .design_context import require_hybrid_design
 
 
 MM_TO_FUSION_LENGTH = 0.1
 
 
-def create_single_gear_sketch(spec: GearTrainSpec) -> adsk.fusion.Sketch:
-    """Create the stage-1 driver outline and bore in a new component."""
+def create_single_gear_body(spec: GearTrainSpec) -> adsk.fusion.BRepBody:
+    """Create and extrude the stage-1 driver in a new component."""
 
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    if not design:
-        raise RuntimeError('An active Fusion design is required.')
+    design = require_hybrid_design()
 
     gear = derive_gears(spec)[0]
     geometry = calculate_gear_geometry(
@@ -63,7 +61,42 @@ def create_single_gear_sketch(spec: GearTrainSpec) -> adsk.fusion.Sketch:
             )
         finally:
             sketch.isComputeDeferred = False
-        return sketch
+
+        if sketch.profiles.count < 2:
+            raise RuntimeError(
+                f'{gear.id}: expected a gear profile and bore profile, '
+                f'but Fusion found {sketch.profiles.count}.'
+            )
+        gear_profile = max(
+            (sketch.profiles.item(index) for index in range(sketch.profiles.count)),
+            key=lambda profile: profile.areaProperties().area,
+        )
+        if gear_profile.profileLoops.count < 2:
+            raise RuntimeError(f'{gear.id}: the selected profile does not contain the bore.')
+
+        extrudes = gear_component.features.extrudeFeatures
+        extrude_input = extrudes.createInput(
+            gear_profile,
+            adsk.fusion.FeatureOperations.NewBodyFeatureOperation,
+        )
+        distance = adsk.core.ValueInput.createByString(
+            f'{spec.standard.face_width_mm} mm'
+        )
+        distance_extent = adsk.fusion.DistanceExtentDefinition.create(distance)
+        if not extrude_input.setOneSideExtent(
+            distance_extent,
+            adsk.fusion.ExtentDirections.PositiveExtentDirection,
+        ):
+            raise RuntimeError(f'{gear.id}: could not define the extrusion extent.')
+
+        extrude = extrudes.add(extrude_input)
+        extrude.name = f'{gear.id}_Extrude'
+        if extrude.bodies.count != 1:
+            raise RuntimeError(f'{gear.id}: extrusion did not create exactly one body.')
+        body = extrude.bodies.item(0)
+        body.name = f'{gear.id}_Body'
+        sketch.isVisible = False
+        return body
     except Exception:
         train_occurrence.deleteMe()
         raise

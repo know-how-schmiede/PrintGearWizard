@@ -19,7 +19,7 @@ from ...core import (
     validate_gear_train,
 )
 from ...lib import fusionAddInUtils as futil
-from ...fusion import create_single_gear_sketch
+from ...fusion import create_single_gear_body, hybrid_design_error
 from ...version import VERSION
 
 
@@ -103,6 +103,20 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 def _add_basic_data_tab(inputs: adsk.core.CommandInputs):
     tab = inputs.addTabCommandInput('basicTab', 'Basic data')
     tab_inputs = tab.children
+
+    design_error = hybrid_design_error()
+    compatibility = tab_inputs.addTextBoxCommandInput(
+        'designCompatibility',
+        '',
+        (
+            f'<b>Blocked:</b> {design_error}'
+            if design_error
+            else '<b>Document:</b> Compatible hybrid design.'
+        ),
+        3 if design_error else 1,
+        True,
+    )
+    compatibility.isFullWidth = True
 
     tab_inputs.addIntegerSpinnerCommandInput(
         'stageCount',
@@ -277,7 +291,7 @@ def _add_construction_tab(inputs: adsk.core.CommandInputs):
     tab_inputs.addTextBoxCommandInput(
         'constructionStatus',
         'Status',
-        f'Version {VERSION} creates a sketch for the stage-1 driver on confirmation.',
+        f'Version {VERSION} creates one stage-1 driver body on confirmation.',
         2,
         True,
     )
@@ -423,8 +437,8 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
-    sketch = create_single_gear_sketch(_dialog_spec(args.command.commandInputs))
-    futil.log(f'{CMD_NAME} created sketch {sketch.name}')
+    body = create_single_gear_body(_dialog_spec(args.command.commandInputs))
+    futil.log(f'{CMD_NAME} created body {body.name}')
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
@@ -456,6 +470,9 @@ def command_validate_input(args: adsk.core.ValidateInputsEventArgs):
     # This event also fires when Fusion commits a value expression with Enter
     # or by moving focus, so refresh results without requiring a tab change.
     _update_dialog(args.inputs)
+    if hybrid_design_error():
+        args.areInputsValid = False
+        return
     if not _value_expressions_are_valid(args.inputs):
         args.areInputsValid = False
         return

@@ -1,4 +1,4 @@
-# PrintGearWizard 0.1.6
+# PrintGearWizard 0.1.8
 
 <img src="images/PrintGearWizard_TitelLogo.png" alt="PrintGear Wizard Logo" width="420">
 
@@ -21,10 +21,11 @@ The first release focuses on standard external involute spur gears and one to fo
 
 ## Project status
 
-Version 0.1.6 provides the executable Fusion add-in skeleton, the first
+Version 0.1.8 provides the executable Fusion add-in skeleton, the first
 Fusion-independent gear-train calculation core, and the standard three-tab
 configuration dialog with live input validation and automated core tests. It
-can create the first closed single-gear profile sketch with a round bore. The add-in registers a
+can create the first extruded single-gear body with a round bore in a
+compatible hybrid design. The add-in registers a
 PrintGearWizard command under **Design > Solid > Create**, displays the project
 icon, and opens the initial dialog without modifying the active design.
 

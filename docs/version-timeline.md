@@ -2,6 +2,28 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.1.8 — 2026-08-26
+
+- Selected the largest closed sketch region and verified that it contains the bore loop.
+- Added a one-sided positive extrusion using the configured gear width.
+- Created exactly one new solid body for the stage-1 driver.
+- Added stable names for the profile sketch, extrusion feature, and resulting body.
+- Hid the source sketch after successful extrusion.
+- Added actionable errors for missing profiles, missing bore loops, invalid extents, or unexpected body counts.
+- Retained automatic removal of the complete generated component tree after an extrusion failure.
+- Kept selected-plane placement and additional gears for later versions.
+
+## 0.1.7 — 2026-08-26
+
+- Added a centralized active-document and Fusion design-intent compatibility check.
+- Allowed internal gear components only in writable hybrid designs.
+- Blocked part designs because they cannot contain child components.
+- Blocked assembly designs because generated parts would need to be external components.
+- Blocked read-only configuration documents and Fusion versions that cannot report design intent.
+- Added a visible compatibility status at the top of the basic-data tab.
+- Repeated the compatibility check immediately before geometry creation to prevent bypasses.
+- Isolated use of Fusion's preview design-intent API behind one integration module.
+
 ## 0.1.6 — 2026-08-26
 
 - Added complete counter-clockwise gear-outline construction from sampled involute flanks.
