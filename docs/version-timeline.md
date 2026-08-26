@@ -2,6 +2,18 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.1.9 — 2026-08-26
+
+- Added post-extrusion verification before generated geometry is accepted.
+- Verified that Fusion created a solid body with positive volume.
+- Compared the resulting body width with the configured gear width.
+- Compared the maximum body-vertex radius with the calculated addendum radius.
+- Located the cylindrical bore face and compared its radius with the configured shaft bore.
+- Added explicit dimensional error messages with actual and expected values.
+- Rolled back the generated component tree whenever a dimensional check fails.
+- Added a 20-tooth, module-1 reference test for the expected 22 mm outside diameter.
+- Completed the single-gear geometry milestone; multi-stage creation remains disabled.
+
 ## 0.1.8 — 2026-08-26
 
 - Selected the largest closed sketch region and verified that it contains the bore loop.

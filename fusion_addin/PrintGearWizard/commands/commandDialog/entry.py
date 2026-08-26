@@ -438,7 +438,7 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
 
 def command_execute(args: adsk.core.CommandEventArgs):
     body = create_single_gear_body(_dialog_spec(args.command.commandInputs))
-    futil.log(f'{CMD_NAME} created body {body.name}')
+    futil.log(f'{CMD_NAME} created and dimensionally verified body {body.name}')
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

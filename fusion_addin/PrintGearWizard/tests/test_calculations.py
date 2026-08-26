@@ -46,6 +46,11 @@ class GearGeometryTests(unittest.TestCase):
     def test_center_distance_for_twenty_and_forty_teeth(self):
         self.assertAlmostEqual(calculate_center_distance_mm(1.0, 20, 40), 30.0)
 
+    def test_reference_outside_diameter_is_twenty_two_millimetres(self):
+        geometry = calculate_gear_geometry(1.0, 20, math.radians(20))
+
+        self.assertAlmostEqual(2 * geometry.addendum_radius_mm, 22.0)
+
 
 class GearTrainCalculationTests(unittest.TestCase):
     def test_single_stage_ratio_and_direction(self):
