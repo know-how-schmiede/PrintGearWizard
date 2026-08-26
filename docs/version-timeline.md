@@ -2,6 +2,18 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.1.6 — 2026-08-26
+
+- Added complete counter-clockwise gear-outline construction from sampled involute flanks.
+- Added polygonal addendum and root arcs plus controlled radial root transitions.
+- Removed consecutive duplicate points and made contour closure explicit.
+- Added a Fusion integration boundary that converts millimetres only when creating sketch geometry.
+- Added creation of a top-level gear-train component and a stable stage-1 driver component.
+- Added a closed stage-1 driver profile sketch and separate round bore on the component XY plane.
+- Added outline closure, radius-bound, and zero-length-segment tests.
+- Corrected the involute flank orientation so teeth narrow toward the addendum instead of widening outward.
+- Kept extrusion, selected-plane placement, preview geometry, and additional gears for later versions.
+
 ## 0.1.5 — 2026-08-26
 
 - Refreshed calculated dialog results when Fusion commits a value with Enter or a focus change.

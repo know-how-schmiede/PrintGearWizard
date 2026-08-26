@@ -24,6 +24,13 @@ class ToothFlanks:
     right: tuple[Point2D, ...]
 
 
+@dataclass(frozen=True)
+class GearOutline:
+    """A closed outer gear contour represented by ordered line endpoints."""
+
+    points: tuple[Point2D, ...]
+
+
 def involute_parameter_at_radius(base_radius_mm: float, radius_mm: float) -> float:
     """Return the involute parameter at a requested radius."""
 
@@ -116,9 +123,13 @@ def build_tooth_flanks(
     if corrected_half_angle <= 0:
         raise ValueError('Backlash removes the complete tooth thickness.')
 
-    rotation_rad = corrected_half_angle - pitch_point_angle
-    left = tuple(rotate_point(point, rotation_rad) for point in raw_flank)
-    right = tuple(Point2D(point.x_mm, -point.y_mm) for point in left)
+    # The unrotated involute winds counter-clockwise as its radius grows. It
+    # therefore represents the right flank: after placing its pitch point at
+    # the negative half-tooth angle, the addendum point moves toward the tooth
+    # centerline. Mirroring that curve produces the left flank.
+    rotation_rad = -corrected_half_angle - pitch_point_angle
+    right = tuple(rotate_point(point, rotation_rad) for point in raw_flank)
+    left = tuple(Point2D(point.x_mm, -point.y_mm) for point in right)
     return ToothFlanks(left=left, right=right)
 
 
@@ -126,3 +137,101 @@ def point_radius_mm(point: Point2D) -> float:
     """Return the distance of a point from the origin."""
 
     return hypot(point.x_mm, point.y_mm)
+
+
+def build_gear_outline(
+    geometry: GearGeometry,
+    teeth: int,
+    backlash_mm: float,
+    involute_samples: int = 12,
+    arc_segments: int = 4,
+) -> GearOutline:
+    """Build one counter-clockwise, closed, polygonal gear outline.
+
+    Version 1 uses radial transitions between the root circle and involute.
+    Circular root and addendum regions are sampled into short line segments.
+    The final point repeats the first point to make closure explicit.
+    """
+
+    if arc_segments < 1:
+        raise ValueError('At least one arc segment is required.')
+
+    flanks = build_tooth_flanks(
+        geometry,
+        teeth,
+        backlash_mm,
+        involute_samples,
+    )
+    tooth_pitch_rad = 2 * pi / teeth
+    right_start_angle = atan2(flanks.right[0].y_mm, flanks.right[0].x_mm)
+    left_start_angle = atan2(flanks.left[0].y_mm, flanks.left[0].x_mm)
+    right_tip_angle = atan2(flanks.right[-1].y_mm, flanks.right[-1].x_mm)
+    left_tip_angle = atan2(flanks.left[-1].y_mm, flanks.left[-1].x_mm)
+
+    points = []
+    for tooth_index in range(teeth):
+        center_angle = tooth_index * tooth_pitch_rad
+        root_right = _polar_point(
+            geometry.root_radius_mm,
+            center_angle + right_start_angle,
+        )
+        if not points:
+            points.append(root_right)
+
+        points.extend(
+            rotate_point(point, center_angle) for point in flanks.right
+        )
+        points.extend(
+            _sample_arc(
+                geometry.addendum_radius_mm,
+                center_angle + right_tip_angle,
+                center_angle + left_tip_angle,
+                arc_segments,
+            )[1:]
+        )
+        points.extend(
+            rotate_point(point, center_angle)
+            for point in reversed(flanks.left[:-1])
+        )
+        root_left = _polar_point(
+            geometry.root_radius_mm,
+            center_angle + left_start_angle,
+        )
+        points.append(root_left)
+
+        next_right_angle = center_angle + tooth_pitch_rad + right_start_angle
+        points.extend(
+            _sample_arc(
+                geometry.root_radius_mm,
+                center_angle + left_start_angle,
+                next_right_angle,
+                arc_segments,
+            )[1:]
+        )
+
+    points[-1] = points[0]
+    deduplicated = [points[0]]
+    for point in points[1:]:
+        previous = deduplicated[-1]
+        if hypot(point.x_mm - previous.x_mm, point.y_mm - previous.y_mm) > 1e-9:
+            deduplicated.append(point)
+    if deduplicated[-1] != deduplicated[0]:
+        deduplicated.append(deduplicated[0])
+    return GearOutline(points=tuple(deduplicated))
+
+
+def _polar_point(radius_mm: float, angle_rad: float) -> Point2D:
+    return Point2D(radius_mm * cos(angle_rad), radius_mm * sin(angle_rad))
+
+
+def _sample_arc(
+    radius_mm: float,
+    start_angle_rad: float,
+    end_angle_rad: float,
+    segment_count: int,
+) -> tuple[Point2D, ...]:
+    angle_step = (end_angle_rad - start_angle_rad) / segment_count
+    return tuple(
+        _polar_point(radius_mm, start_angle_rad + index * angle_step)
+        for index in range(segment_count + 1)
+    )

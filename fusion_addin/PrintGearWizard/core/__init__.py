@@ -21,8 +21,10 @@ from .models import (
     StageResult,
 )
 from .involute import (
+    GearOutline,
     Point2D,
     ToothFlanks,
+    build_gear_outline,
     build_tooth_flanks,
     involute_parameter_at_radius,
     involute_point,
@@ -52,7 +54,9 @@ __all__ = [
     'GearTrainSpec',
     'output_rotation_direction',
     'Point2D',
+    'GearOutline',
     'ToothFlanks',
+    'build_gear_outline',
     'build_tooth_flanks',
     'involute_parameter_at_radius',
     'involute_point',

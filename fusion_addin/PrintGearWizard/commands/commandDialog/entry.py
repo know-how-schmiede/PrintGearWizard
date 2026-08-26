@@ -19,6 +19,7 @@ from ...core import (
     validate_gear_train,
 )
 from ...lib import fusionAddInUtils as futil
+from ...fusion import create_single_gear_sketch
 from ...version import VERSION
 
 
@@ -276,7 +277,7 @@ def _add_construction_tab(inputs: adsk.core.CommandInputs):
     tab_inputs.addTextBoxCommandInput(
         'constructionStatus',
         'Status',
-        f'Dialog preview only — version {VERSION} creates no geometry.',
+        f'Version {VERSION} creates a sketch for the stage-1 driver on confirmation.',
         2,
         True,
     )
@@ -422,7 +423,8 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
-    futil.log(f'{CMD_NAME} Command Execute Event — no geometry in version {VERSION}')
+    sketch = create_single_gear_sketch(_dialog_spec(args.command.commandInputs))
+    futil.log(f'{CMD_NAME} created sketch {sketch.name}')
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
