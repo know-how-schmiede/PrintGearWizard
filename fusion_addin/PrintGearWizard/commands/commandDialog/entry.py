@@ -378,8 +378,10 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
 
             stage = stages[index - 1]
             result = results[index - 1]
-            _input(inputs, f'stageRatio_{index}').text = f'{result.ratio:.4g} : 1'
-            _input(inputs, f'centerDistance_{index}').text = (
+            _input(inputs, f'stageRatio_{index}').formattedText = (
+                f'{result.ratio:.4g} : 1'
+            )
+            _input(inputs, f'centerDistance_{index}').formattedText = (
                 f'{result.center_distance_mm:.3f} mm'
             )
             warnings = []
@@ -391,11 +393,13 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
             warning_input.formattedText = '<br>'.join(warnings)
             warning_input.isVisible = bool(warnings)
 
-        _input(inputs, 'totalRatio').text = f'{calculate_total_ratio(stages):.5g} : 1'
-        _input(inputs, 'physicalGearCount').text = str(2 * stage_count)
-        _input(inputs, 'shaftCount').text = str(stage_count + 1)
+        _input(inputs, 'totalRatio').formattedText = (
+            f'{calculate_total_ratio(stages):.5g} : 1'
+        )
+        _input(inputs, 'physicalGearCount').formattedText = str(2 * stage_count)
+        _input(inputs, 'shaftCount').formattedText = str(stage_count + 1)
         direction = output_rotation_direction(stage_count)
-        _input(inputs, 'outputDirection').text = (
+        _input(inputs, 'outputDirection').formattedText = (
             'Same as input'
             if direction == RotationDirection.SAME
             else 'Opposite to input'
@@ -447,6 +451,9 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
 
 
 def command_validate_input(args: adsk.core.ValidateInputsEventArgs):
+    # This event also fires when Fusion commits a value expression with Enter
+    # or by moving focus, so refresh results without requiring a tab change.
+    _update_dialog(args.inputs)
     if not _value_expressions_are_valid(args.inputs):
         args.areInputsValid = False
         return

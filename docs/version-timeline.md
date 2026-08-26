@@ -2,6 +2,16 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.1.5 — 2026-08-26
+
+- Refreshed calculated dialog results when Fusion commits a value with Enter or a focus change.
+- Updated read-only result fields through their formatted-text API for immediate repainting.
+- Added validation-time refresh as a fallback, removing the need to switch dialog tabs.
+- Added Fusion-independent involute parameter, point, rotation, and sampling calculations.
+- Added symmetric tooth-flank generation with documented per-gear backlash semantics.
+- Added automated tests for involute endpoint radii, flank symmetry, and backlash reduction.
+- Kept version 0.1.5 non-destructive; sampled tooth curves are not yet written into Fusion sketches.
+
 ## 0.1.4 — 2026-08-26
 
 - Added automated unit tests using Python's standard `unittest` framework.

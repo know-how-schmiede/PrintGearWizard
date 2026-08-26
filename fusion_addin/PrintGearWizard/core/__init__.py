@@ -20,6 +20,16 @@ from .models import (
     StageInput,
     StageResult,
 )
+from .involute import (
+    Point2D,
+    ToothFlanks,
+    build_tooth_flanks,
+    involute_parameter_at_radius,
+    involute_point,
+    point_radius_mm,
+    rotate_point,
+    sample_involute,
+)
 from .validation import (
     ValidationIssue,
     ValidationSeverity,
@@ -41,6 +51,14 @@ __all__ = [
     'GearStandard',
     'GearTrainSpec',
     'output_rotation_direction',
+    'Point2D',
+    'ToothFlanks',
+    'build_tooth_flanks',
+    'involute_parameter_at_radius',
+    'involute_point',
+    'point_radius_mm',
+    'rotate_point',
+    'sample_involute',
     'RotationDirection',
     'StageInput',
     'StageResult',
