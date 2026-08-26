@@ -114,6 +114,15 @@ class PlacementTests(unittest.TestCase):
         self.assertEqual(placements[2].z_mm, 9.0)
         self.assertEqual(placements[3].z_mm, 9.0)
 
+    def test_four_stages_alternate_between_two_axial_planes(self):
+        placements = calculate_placements(
+            make_spec(((20, 40), (20, 40), (20, 40), (20, 40)))
+        )
+
+        stage_planes = [placements[index].z_mm for index in range(0, 8, 2)]
+        self.assertEqual(stage_planes, [0.0, 9.0, 0.0, 9.0])
+        self.assertEqual(set(placement.z_mm for placement in placements), {0.0, 9.0})
+
     def test_driven_gear_places_a_gap_on_the_line_of_centers(self):
         placements = calculate_placements(make_spec(((20, 40),)))
         driven_rotation = placements[1].rotation_rad

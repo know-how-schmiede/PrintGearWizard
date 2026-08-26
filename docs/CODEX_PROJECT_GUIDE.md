@@ -289,7 +289,7 @@ Compound gears on the same intermediate shaft share X and Y coordinates. They ma
 
 - Stage 1 mesh plane at `z = 0`
 - Stage 2 mesh plane at `z = face_width + axial_gap`
-- Continue alternating or stacking by stage
+- Stage 3 returns to `z = 0`; all later stages continue alternating between these two planes
 - The two gears sharing an intermediate shaft occupy their respective stage planes
 
 Use a small configurable internal axial gap, initially 1 mm, but do not expose it in the standard UI unless required.
@@ -494,4 +494,3 @@ When implementation begins:
 ## 18. Version-1 completion criteria
 
 Version 1 is complete when a user can create a valid one- to four-stage external spur-gear train using the standard dialog, obtain correctly named separate Fusion components at calculated shaft positions, see accurate ratios and warnings, cancel without residue, and reproduce the documented reference examples.
-

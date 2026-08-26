@@ -2,6 +2,17 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.2.2 — 2026-08-26
+
+- Replaced continuously stacked stage planes with a compact two-plane axial layout.
+- Assigned odd-numbered stages to the first axial plane at `z = 0`.
+- Assigned even-numbered stages to the second plane at `z = face width + 1 mm`.
+- Returned stages 3 and 4 to the first and second planes respectively.
+- Preserved a common plane for both mating gears within each stage.
+- Preserved alternating planes for the two compound gears on every intermediate shaft.
+- Added a four-stage regression test that verifies only two unique Z positions are used.
+- Updated the project guide to make the two-plane rule explicit.
+
 ## 0.2.1 — 2026-08-26
 
 - Documented the top-level `PrintGearWizard Gear Train` component as the required container for all generated gear components.

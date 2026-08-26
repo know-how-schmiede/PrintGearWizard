@@ -126,7 +126,9 @@ def calculate_placements(
     placements = []
     for gear in derive_gears(spec):
         offset_mm = shaft_offsets_mm[gear.shaft_index]
-        stage_plane_mm = (gear.stage_index - 1) * (
+        # Alternate stages between two axial planes. This keeps compound gears
+        # on separate planes while limiting the complete train to two layers.
+        stage_plane_mm = ((gear.stage_index - 1) % 2) * (
             spec.standard.face_width_mm + axial_gap_mm
         )
         tooth_pitch_rad = 2 * pi / gear.teeth
