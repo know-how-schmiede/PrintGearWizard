@@ -3,6 +3,7 @@
 from .calculations import (
     calculate_center_distance_mm,
     calculate_gear_geometry,
+    calculate_layout_plan,
     calculate_placements,
     calculate_stage_result,
     calculate_stage_results,
@@ -16,6 +17,7 @@ from .models import (
     GearSpec,
     GearStandard,
     GearTrainSpec,
+    GearTrainLayout,
     RotationDirection,
     StageInput,
     StageResult,
@@ -42,6 +44,7 @@ from .validation import (
 __all__ = [
     'calculate_center_distance_mm',
     'calculate_gear_geometry',
+    'calculate_layout_plan',
     'calculate_placements',
     'calculate_stage_result',
     'calculate_stage_results',
@@ -52,6 +55,7 @@ __all__ = [
     'GearSpec',
     'GearStandard',
     'GearTrainSpec',
+    'GearTrainLayout',
     'output_rotation_direction',
     'Point2D',
     'GearOutline',

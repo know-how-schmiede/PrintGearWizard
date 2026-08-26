@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 from math import pi
 
-from .calculations import calculate_gear_geometry
+from .calculations import calculate_gear_geometry, calculate_layout_plan
 from .models import GearTrainSpec
 
 
@@ -93,6 +93,10 @@ def validate_gear_train(spec: GearTrainSpec) -> tuple[ValidationIssue, ...]:
             stage.driven_teeth,
             stage_index,
         )
+
+    if not any(issue.severity == ValidationSeverity.ERROR for issue in issues):
+        for message in calculate_layout_plan(spec).warnings:
+            _warning(issues, message, 'layoutDirection')
 
     return tuple(issues)
 

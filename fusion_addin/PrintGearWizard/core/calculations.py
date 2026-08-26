@@ -9,6 +9,7 @@ from .models import (
     GearPlacement,
     GearSpec,
     GearTrainSpec,
+    GearTrainLayout,
     RotationDirection,
     StageInput,
     StageResult,
@@ -116,19 +117,34 @@ def calculate_placements(
     vertical: bool = False,
     axial_gap_mm: float = AXIAL_GAP_MM,
 ) -> tuple[GearPlacement, ...]:
-    """Place shafts linearly and stack successive mesh planes along Z."""
+    """Return placements from the collision-aware axial layout plan."""
+
+    return calculate_layout_plan(
+        spec,
+        vertical=vertical,
+        axial_gap_mm=axial_gap_mm,
+    ).placements
+
+
+def calculate_layout_plan(
+    spec: GearTrainSpec,
+    *,
+    vertical: bool = False,
+    axial_gap_mm: float = AXIAL_GAP_MM,
+) -> GearTrainLayout:
+    """Prefer two planes and add fallback planes when addendum circles collide."""
 
     stage_results = calculate_stage_results(spec)
     shaft_offsets_mm = [0.0]
     for result in stage_results:
         shaft_offsets_mm.append(shaft_offsets_mm[-1] + result.center_distance_mm)
 
+    gears = derive_gears(spec)
+    plane_indices, warnings = _resolve_stage_planes(spec, gears, shaft_offsets_mm)
     placements = []
-    for gear in derive_gears(spec):
+    for gear in gears:
         offset_mm = shaft_offsets_mm[gear.shaft_index]
-        # Alternate stages between two axial planes. This keeps compound gears
-        # on separate planes while limiting the complete train to two layers.
-        stage_plane_mm = ((gear.stage_index - 1) % 2) * (
+        stage_plane_mm = plane_indices[gear.stage_index - 1] * (
             spec.standard.face_width_mm + axial_gap_mm
         )
         tooth_pitch_rad = 2 * pi / gear.teeth
@@ -146,4 +162,90 @@ def calculate_placements(
                 rotation_rad=rotation_rad,
             )
         )
-    return tuple(placements)
+    return GearTrainLayout(
+        placements=tuple(placements),
+        stage_plane_indices=plane_indices,
+        warnings=warnings,
+    )
+
+
+def _resolve_stage_planes(
+    spec: GearTrainSpec,
+    gears: tuple[GearSpec, ...],
+    shaft_offsets_mm: list[float],
+) -> tuple[tuple[int, ...], tuple[str, ...]]:
+    assigned_by_plane = {}
+    plane_indices = []
+    warnings = []
+
+    for stage_index in range(1, len(spec.stages) + 1):
+        stage_gears = tuple(
+            gear for gear in gears if gear.stage_index == stage_index
+        )
+        rejected_collisions = []
+        chosen_plane = None
+        preferred_plane = (stage_index - 1) % 2
+        candidate_planes = (preferred_plane,) + tuple(
+            plane_index
+            for plane_index in range(len(spec.stages))
+            if plane_index != preferred_plane
+        )
+        for candidate_plane in candidate_planes:
+            if plane_indices and candidate_plane == plane_indices[-1]:
+                continue
+            collision = _first_plane_collision(
+                spec,
+                stage_gears,
+                assigned_by_plane.get(candidate_plane, ()),
+                shaft_offsets_mm,
+            )
+            if collision:
+                rejected_collisions.append(collision)
+                continue
+            chosen_plane = candidate_plane
+            break
+
+        if chosen_plane is None:
+            raise ValueError(f'No collision-free plane found for stage {stage_index}.')
+        plane_indices.append(chosen_plane)
+        assigned_by_plane.setdefault(chosen_plane, []).extend(stage_gears)
+
+        if chosen_plane != preferred_plane:
+            reason = rejected_collisions[0] if rejected_collisions else 'compound-shaft overlap'
+            warnings.append(
+                f'Stage {stage_index} moved to axial plane {chosen_plane + 1}; '
+                f'compact plane {preferred_plane + 1} would cause {reason}.'
+            )
+
+    return tuple(plane_indices), tuple(warnings)
+
+
+def _first_plane_collision(
+    spec: GearTrainSpec,
+    new_gears: tuple[GearSpec, ...],
+    existing_gears,
+    shaft_offsets_mm: list[float],
+) -> str:
+    for new_gear in new_gears:
+        new_radius_mm = calculate_gear_geometry(
+            spec.standard.module_mm,
+            new_gear.teeth,
+            spec.standard.pressure_angle_rad,
+        ).addendum_radius_mm
+        for existing_gear in existing_gears:
+            existing_radius_mm = calculate_gear_geometry(
+                spec.standard.module_mm,
+                existing_gear.teeth,
+                spec.standard.pressure_angle_rad,
+            ).addendum_radius_mm
+            center_distance_mm = abs(
+                shaft_offsets_mm[new_gear.shaft_index]
+                - shaft_offsets_mm[existing_gear.shaft_index]
+            )
+            overlap_mm = new_radius_mm + existing_radius_mm - center_distance_mm
+            if overlap_mm > 1e-9:
+                return (
+                    f'a {overlap_mm:.3f} mm collision between '
+                    f'{existing_gear.id} and {new_gear.id}'
+                )
+    return ''

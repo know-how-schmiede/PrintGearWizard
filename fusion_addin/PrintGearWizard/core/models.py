@@ -85,3 +85,12 @@ class GearPlacement:
     y_mm: float
     z_mm: float
     rotation_rad: float
+
+
+@dataclass(frozen=True)
+class GearTrainLayout:
+    """Resolved placements and any compact-layout fallback messages."""
+
+    placements: tuple[GearPlacement, ...]
+    stage_plane_indices: tuple[int, ...]
+    warnings: tuple[str, ...]

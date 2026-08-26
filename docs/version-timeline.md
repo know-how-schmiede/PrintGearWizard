@@ -2,6 +2,18 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.2.3 — 2026-08-26
+
+- Added pre-generation collision planning based on addendum-circle clearance.
+- Checked non-mating gears assigned to the same axial plane before creating Fusion geometry.
+- Preserved the compact alternating two-plane layout whenever it is collision-free.
+- Automatically assigned a stage to the next free axial plane when its preferred plane would collide.
+- Added collision messages containing the affected gear IDs and calculated overlap in millimetres.
+- Displayed the resolved layout and fallback warnings live on the construction tab and in validation results.
+- Used the same resolved collision-free placements during final body generation.
+- Added regression tests for both collision-free two-plane layouts and automatic third-plane fallback.
+- Updated the project guide with the preferred-plane and fallback rules.
+
 ## 0.2.2 — 2026-08-26
 
 - Replaced continuously stacked stage planes with a compact two-plane axial layout.

@@ -5,7 +5,7 @@
   "description": {
     "": "PrintGearWizard is an open-source Autodesk Fusion add-in for creating configurable, 3D-print-friendly spur gears and simple multi-stage gear trains"
   },
-  "version": "0.2.2",
+  "version": "0.2.3",
   "runOnStartup": false,
   "supportedOS": "windows|mac",
   "editEnabled": true,

@@ -14,6 +14,7 @@ from ...core import (
     StageInput,
     calculate_stage_results,
     calculate_total_ratio,
+    calculate_layout_plan,
     has_errors,
     output_rotation_direction,
     validate_gear_train,
@@ -267,6 +268,14 @@ def _add_construction_tab(inputs: adsk.core.CommandInputs):
     )
     layout.listItems.add('Horizontal', True, '')
     layout.listItems.add('Vertical', False, '')
+    layout_status = tab_inputs.addTextBoxCommandInput(
+        'layoutStatus',
+        'Axial layout',
+        '',
+        3,
+        True,
+    )
+    layout_status.isFullWidth = True
 
     bores = tab_inputs.addGroupCommandInput('shaftBoresGroup', 'Shaft bores')
     bores.isExpanded = True
@@ -383,6 +392,7 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
         spec = _dialog_spec(inputs)
         stages = spec.stages
         results = calculate_stage_results(spec)
+        layout_plan = calculate_layout_plan(spec)
 
         for index in range(1, MAX_STAGE_COUNT + 1):
             active = index <= stage_count
@@ -431,6 +441,15 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
         else:
             _input(inputs, 'validationStatus').formattedText = (
                 '<b>Ready:</b> All inputs are valid.'
+            )
+        if layout_plan.warnings:
+            _input(inputs, 'layoutStatus').formattedText = '<br>'.join(
+                f'<b>Collision avoided:</b> {message}'
+                for message in layout_plan.warnings
+            )
+        else:
+            _input(inputs, 'layoutStatus').formattedText = (
+                '<b>Layout:</b> Compact two-plane arrangement is collision-free.'
             )
     finally:
         updating_dialog = False

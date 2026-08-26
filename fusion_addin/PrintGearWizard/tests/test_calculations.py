@@ -10,6 +10,7 @@ from ..core import (
     StageInput,
     calculate_center_distance_mm,
     calculate_gear_geometry,
+    calculate_layout_plan,
     calculate_placements,
     calculate_stage_results,
     calculate_total_ratio,
@@ -114,14 +115,31 @@ class PlacementTests(unittest.TestCase):
         self.assertEqual(placements[2].z_mm, 9.0)
         self.assertEqual(placements[3].z_mm, 9.0)
 
-    def test_four_stages_alternate_between_two_axial_planes(self):
-        placements = calculate_placements(
-            make_spec(((20, 40), (20, 40), (20, 40), (20, 40)))
+    def test_four_stages_use_two_planes_when_clearance_allows_it(self):
+        plan = calculate_layout_plan(
+            make_spec(((20, 20), (100, 20), (20, 100), (20, 20)))
         )
 
-        stage_planes = [placements[index].z_mm for index in range(0, 8, 2)]
+        stage_planes = [plan.placements[index].z_mm for index in range(0, 8, 2)]
         self.assertEqual(stage_planes, [0.0, 9.0, 0.0, 9.0])
-        self.assertEqual(set(placement.z_mm for placement in placements), {0.0, 9.0})
+        self.assertEqual(
+            set(placement.z_mm for placement in plan.placements),
+            {0.0, 9.0},
+        )
+        self.assertEqual(plan.warnings, ())
+
+    def test_collision_adds_a_fallback_plane_and_warning(self):
+        plan = calculate_layout_plan(
+            make_spec(((20, 40), (20, 40), (20, 40)))
+        )
+
+        self.assertEqual(plan.stage_plane_indices, (0, 1, 2))
+        self.assertEqual(
+            set(placement.z_mm for placement in plan.placements),
+            {0.0, 9.0, 18.0},
+        )
+        self.assertEqual(len(plan.warnings), 1)
+        self.assertIn('2.000 mm collision', plan.warnings[0])
 
     def test_driven_gear_places_a_gap_on_the_line_of_centers(self):
         placements = calculate_placements(make_spec(((20, 40),)))

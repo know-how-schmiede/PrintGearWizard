@@ -289,7 +289,9 @@ Compound gears on the same intermediate shaft share X and Y coordinates. They ma
 
 - Stage 1 mesh plane at `z = 0`
 - Stage 2 mesh plane at `z = face_width + axial_gap`
-- Stage 3 returns to `z = 0`; all later stages continue alternating between these two planes
+- Stage 3 first attempts to return to `z = 0`; later stages continue alternating when collision-free
+- Before creation, detect addendum-circle overlap between non-mating gears on the same plane
+- If a preferred plane would collide, warn the user and assign the stage to the next collision-free axial plane
 - The two gears sharing an intermediate shaft occupy their respective stage planes
 
 Use a small configurable internal axial gap, initially 1 mm, but do not expose it in the standard UI unless required.
