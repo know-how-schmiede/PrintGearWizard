@@ -20,6 +20,12 @@ from .models import (
     StageInput,
     StageResult,
 )
+from .validation import (
+    ValidationIssue,
+    ValidationSeverity,
+    has_errors,
+    validate_gear_train,
+)
 
 __all__ = [
     'calculate_center_distance_mm',
@@ -38,4 +44,8 @@ __all__ = [
     'RotationDirection',
     'StageInput',
     'StageResult',
+    'ValidationIssue',
+    'ValidationSeverity',
+    'has_errors',
+    'validate_gear_train',
 ]

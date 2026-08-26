@@ -2,6 +2,16 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.1.3 — 2026-08-26
+
+- Added Fusion-independent blocking validation and non-blocking warning results.
+- Added checks for stage count, positive dimensions, pressure angle, involute sampling, and shaft bore count.
+- Added minimum tooth-count, positive root-radius, real involute, tooth-thickness, and bore-wall checks.
+- Added printability warnings for low tooth counts, small modules, unusual backlash, and large diameters.
+- Added a live validation summary to the gear-stages tab.
+- Disabled command confirmation whenever blocking errors or invalid numeric expressions are present.
+- Kept version 0.1.3 non-destructive; successful confirmation still creates no geometry.
+
 ## 0.1.2 — 2026-08-26
 
 - Added the standard three-tab command dialog for basic data, gear stages, and construction.

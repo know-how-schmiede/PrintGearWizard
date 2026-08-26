@@ -14,7 +14,9 @@ from ...core import (
     StageInput,
     calculate_stage_results,
     calculate_total_ratio,
+    has_errors,
     output_rotation_direction,
+    validate_gear_train,
 )
 from ...lib import fusionAddInUtils as futil
 from ...version import VERSION
@@ -206,6 +208,14 @@ def _add_stages_tab(inputs: adsk.core.CommandInputs):
         1,
         True,
     )
+    validation_status = tab_inputs.addTextBoxCommandInput(
+        'validationStatus',
+        'Validation',
+        '',
+        4,
+        True,
+    )
+    validation_status.isFullWidth = True
 
 
 def _add_construction_tab(inputs: adsk.core.CommandInputs):
@@ -266,7 +276,7 @@ def _add_construction_tab(inputs: adsk.core.CommandInputs):
     tab_inputs.addTextBoxCommandInput(
         'constructionStatus',
         'Status',
-        'Dialog preview only — version 0.1.2 creates no geometry.',
+        f'Dialog preview only — version {VERSION} creates no geometry.',
         2,
         True,
     )
@@ -312,6 +322,34 @@ def _active_stages(inputs: adsk.core.CommandInputs) -> tuple[StageInput, ...]:
     )
 
 
+def _value_expressions_are_valid(inputs: adsk.core.CommandInputs) -> bool:
+    value_ids = ['module', 'pressureAngle', 'faceWidth', 'backlash']
+    stage_count_input = _input(inputs, 'stageCount')
+    if not stage_count_input:
+        return False
+    value_ids.extend(
+        f'shaftBore_{index}' for index in range(stage_count_input.value + 1)
+    )
+    return all(_input(inputs, input_id).isValidExpression for input_id in value_ids)
+
+
+def _dialog_spec(inputs: adsk.core.CommandInputs) -> GearTrainSpec:
+    stage_count = _input(inputs, 'stageCount').value
+    return GearTrainSpec(
+        standard=GearStandard(
+            module_mm=_millimetres(_input(inputs, 'module')),
+            pressure_angle_rad=_input(inputs, 'pressureAngle').value,
+            face_width_mm=_millimetres(_input(inputs, 'faceWidth')),
+            backlash_mm=_millimetres(_input(inputs, 'backlash')),
+        ),
+        stages=_active_stages(inputs),
+        shaft_bores_mm=tuple(
+            _millimetres(_input(inputs, f'shaftBore_{index}'))
+            for index in range(stage_count + 1)
+        ),
+    )
+
+
 def _update_dialog(inputs: adsk.core.CommandInputs):
     global updating_dialog
     if updating_dialog:
@@ -320,21 +358,15 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
     updating_dialog = True
     try:
         stage_count = _input(inputs, 'stageCount').value
-        stages = _active_stages(inputs)
-        standard = GearStandard(
-            module_mm=_millimetres(_input(inputs, 'module')),
-            pressure_angle_rad=_input(inputs, 'pressureAngle').value,
-            face_width_mm=_millimetres(_input(inputs, 'faceWidth')),
-            backlash_mm=_millimetres(_input(inputs, 'backlash')),
-        )
-        spec = GearTrainSpec(
-            standard=standard,
-            stages=stages,
-            shaft_bores_mm=tuple(
-                _millimetres(_input(inputs, f'shaftBore_{index}'))
-                for index in range(stage_count + 1)
-            ),
-        )
+        if not _value_expressions_are_valid(inputs):
+            validation_status = _input(inputs, 'validationStatus')
+            validation_status.formattedText = (
+                '<b>Error:</b> Complete all numeric values with valid expressions.'
+            )
+            return
+
+        spec = _dialog_spec(inputs)
+        stages = spec.stages
         results = calculate_stage_results(spec)
 
         for index in range(1, MAX_STAGE_COUNT + 1):
@@ -368,6 +400,19 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
             if direction == RotationDirection.SAME
             else 'Opposite to input'
         )
+        issues = validate_gear_train(spec)
+        if issues:
+            validation_lines = [
+                f'<b>{issue.severity.value.title()}:</b> {issue.message}'
+                for issue in issues
+            ]
+            _input(inputs, 'validationStatus').formattedText = '<br>'.join(
+                validation_lines
+            )
+        else:
+            _input(inputs, 'validationStatus').formattedText = (
+                '<b>Ready:</b> All inputs are valid.'
+            )
     finally:
         updating_dialog = False
 
@@ -402,8 +447,10 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
 
 
 def command_validate_input(args: adsk.core.ValidateInputsEventArgs):
-    # Detailed project validation is the next isolated implementation step.
-    args.areInputsValid = True
+    if not _value_expressions_are_valid(args.inputs):
+        args.areInputsValid = False
+        return
+    args.areInputsValid = not has_errors(validate_gear_train(_dialog_spec(args.inputs)))
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
