@@ -19,7 +19,7 @@ from ...core import (
     validate_gear_train,
 )
 from ...lib import fusionAddInUtils as futil
-from ...fusion import create_single_gear_body, hybrid_design_error
+from ...fusion import create_gear_train_bodies, hybrid_design_error
 from ...version import VERSION
 
 
@@ -291,7 +291,7 @@ def _add_construction_tab(inputs: adsk.core.CommandInputs):
     tab_inputs.addTextBoxCommandInput(
         'constructionStatus',
         'Status',
-        f'Version {VERSION} creates one stage-1 driver body on confirmation.',
+        f'Version {VERSION} creates all configured gear bodies on confirmation.',
         2,
         True,
     )
@@ -437,8 +437,10 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
-    body = create_single_gear_body(_dialog_spec(args.command.commandInputs))
-    futil.log(f'{CMD_NAME} created and dimensionally verified body {body.name}')
+    inputs = args.command.commandInputs
+    vertical = _input(inputs, 'layoutDirection').selectedItem.name == 'Vertical'
+    bodies = create_gear_train_bodies(_dialog_spec(inputs), vertical=vertical)
+    futil.log(f'{CMD_NAME} created and verified {len(bodies)} gear bodies')
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

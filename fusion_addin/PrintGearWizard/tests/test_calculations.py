@@ -114,6 +114,14 @@ class PlacementTests(unittest.TestCase):
         self.assertEqual(placements[2].z_mm, 9.0)
         self.assertEqual(placements[3].z_mm, 9.0)
 
+    def test_driven_gear_places_a_gap_on_the_line_of_centers(self):
+        placements = calculate_placements(make_spec(((20, 40),)))
+        driven_rotation = placements[1].rotation_rad
+        driven_pitch = 2 * math.pi / 40
+
+        gap_angle = driven_rotation + driven_pitch / 2
+        self.assertAlmostEqual((math.pi - gap_angle) % driven_pitch, 0.0)
+
 
 if __name__ == '__main__':
     unittest.main()

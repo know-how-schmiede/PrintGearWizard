@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from math import cos, prod
+from math import cos, pi, prod
 
 from .models import (
     GearGeometry,
@@ -129,13 +129,19 @@ def calculate_placements(
         stage_plane_mm = (gear.stage_index - 1) * (
             spec.standard.face_width_mm + axial_gap_mm
         )
+        tooth_pitch_rad = 2 * pi / gear.teeth
+        rotation_rad = 0.0
+        if gear.role == 'driven':
+            # Put a tooth gap, rather than a tooth center, on the line of
+            # centers opposite the stage driver.
+            rotation_rad = (pi - tooth_pitch_rad / 2.0) % tooth_pitch_rad
         placements.append(
             GearPlacement(
                 gear_id=gear.id,
                 x_mm=0.0 if vertical else offset_mm,
                 y_mm=offset_mm if vertical else 0.0,
                 z_mm=stage_plane_mm,
-                rotation_rad=0.0,
+                rotation_rad=rotation_rad,
             )
         )
     return tuple(placements)

@@ -2,6 +2,19 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.2.0 — 2026-08-26
+
+- Added generation of two separate physical gear components for every active stage.
+- Positioned shafts at cumulative calculated center distances in horizontal or vertical layouts.
+- Placed both gears of each mesh on the same axial stage plane.
+- Placed compound gears of adjacent stages on their shared intermediate-shaft coordinates.
+- Stacked successive stage planes by gear width plus the internal 1 mm axial gap.
+- Added driven-gear phase rotation so a tooth gap faces the corresponding driver tooth.
+- Extruded and dimensionally verified every generated gear body.
+- Verified the final body count against twice the configured stage count.
+- Retained all-or-nothing cleanup if any gear fails during generation.
+- Kept selected construction-plane/origin placement and preview cleanup for later versions.
+
 ## 0.1.9 — 2026-08-26
 
 - Added post-extrusion verification before generated geometry is accepted.
