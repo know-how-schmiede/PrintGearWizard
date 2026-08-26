@@ -2,6 +2,16 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.2.5 — 2026-08-26
+
+- Added plane-independent shaft-envelope clearance validation before geometry creation.
+- Modeled every shaft envelope as its configured bore radius plus 1 mm radial safety clearance.
+- Checked each shaft envelope against the addendum circle of every gear mounted on another shaft.
+- Added blocking messages containing the shaft number, safety clearance, affected gear ID, and intrusion depth.
+- Displayed shaft-clearance failures live in both the construction layout status and validation summary.
+- Disabled command confirmation while any shaft envelope would enter an unrelated gear.
+- Added a regression test for a third shaft passing through a large gear on the preceding shaft.
+
 ## 0.2.4 — 2026-08-26
 
 - Applied the selected construction plane or planar face to the generated gear-train container.

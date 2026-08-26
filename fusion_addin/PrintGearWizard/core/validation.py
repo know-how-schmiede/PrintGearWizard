@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from math import pi
+from math import hypot, pi
 
-from .calculations import calculate_gear_geometry, calculate_layout_plan
+from .calculations import (
+    calculate_gear_geometry,
+    calculate_layout_plan,
+    derive_gears,
+)
 from .models import GearTrainSpec
 
 
@@ -15,6 +19,7 @@ MAX_STAGE_COUNT = 4
 MIN_TEETH = 4
 RECOMMENDED_MIN_TEETH = 17
 MIN_WALL_MM = 1.2
+SHAFT_CLEARANCE_MM = 1.0
 
 
 class ValidationSeverity(str, Enum):
@@ -95,6 +100,9 @@ def validate_gear_train(spec: GearTrainSpec) -> tuple[ValidationIssue, ...]:
         )
 
     if not any(issue.severity == ValidationSeverity.ERROR for issue in issues):
+        issues.extend(validate_shaft_clearances(spec))
+
+    if not any(issue.severity == ValidationSeverity.ERROR for issue in issues):
         for message in calculate_layout_plan(spec).warnings:
             _warning(issues, message, 'layoutDirection')
 
@@ -105,6 +113,52 @@ def has_errors(issues: tuple[ValidationIssue, ...]) -> bool:
     """Return whether a validation result contains a blocking issue."""
 
     return any(issue.severity == ValidationSeverity.ERROR for issue in issues)
+
+
+def validate_shaft_clearances(
+    spec: GearTrainSpec,
+) -> tuple[ValidationIssue, ...]:
+    """Check every through-shaft envelope against every unrelated gear."""
+
+    gears = derive_gears(spec)
+    layout = calculate_layout_plan(spec)
+    placements_by_id = {
+        placement.gear_id: placement for placement in layout.placements
+    }
+    shaft_positions = {}
+    for gear in gears:
+        placement = placements_by_id[gear.id]
+        shaft_positions.setdefault(
+            gear.shaft_index,
+            (placement.x_mm, placement.y_mm),
+        )
+
+    issues = []
+    for shaft_index, bore_diameter_mm in enumerate(spec.shaft_bores_mm):
+        shaft_x_mm, shaft_y_mm = shaft_positions[shaft_index]
+        clearance_radius_mm = bore_diameter_mm / 2.0 + SHAFT_CLEARANCE_MM
+        for gear in gears:
+            if gear.shaft_index == shaft_index:
+                continue
+            placement = placements_by_id[gear.id]
+            center_distance_mm = hypot(
+                placement.x_mm - shaft_x_mm,
+                placement.y_mm - shaft_y_mm,
+            )
+            gear_radius_mm = calculate_gear_geometry(
+                spec.standard.module_mm,
+                gear.teeth,
+                spec.standard.pressure_angle_rad,
+            ).addendum_radius_mm
+            intrusion_mm = clearance_radius_mm + gear_radius_mm - center_distance_mm
+            if intrusion_mm > 1e-9:
+                _error(
+                    issues,
+                    f'Shaft {shaft_index + 1} plus {SHAFT_CLEARANCE_MM:.1f} mm '
+                    f'clearance intrudes {intrusion_mm:.3f} mm into {gear.id}.',
+                    f'shaftBore_{shaft_index}',
+                )
+    return tuple(issues)
 
 
 def _validate_gear(

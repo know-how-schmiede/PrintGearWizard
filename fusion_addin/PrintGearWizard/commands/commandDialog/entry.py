@@ -18,6 +18,7 @@ from ...core import (
     has_errors,
     output_rotation_direction,
     validate_gear_train,
+    validate_shaft_clearances,
 )
 from ...lib import fusionAddInUtils as futil
 from ...fusion import create_gear_train_bodies, hybrid_design_error
@@ -442,6 +443,7 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
         stages = spec.stages
         results = calculate_stage_results(spec)
         layout_plan = calculate_layout_plan(spec)
+        shaft_clearance_issues = validate_shaft_clearances(spec)
 
         for index in range(1, MAX_STAGE_COUNT + 1):
             active = index <= stage_count
@@ -491,10 +493,17 @@ def _update_dialog(inputs: adsk.core.CommandInputs):
             _input(inputs, 'validationStatus').formattedText = (
                 '<b>Ready:</b> All inputs are valid.'
             )
-        if layout_plan.warnings:
+        layout_messages = [
+            f'<b>Blocked:</b> {issue.message}'
+            for issue in shaft_clearance_issues
+        ]
+        layout_messages.extend(
+            f'<b>Collision avoided:</b> {message}'
+            for message in layout_plan.warnings
+        )
+        if layout_messages:
             _input(inputs, 'layoutStatus').formattedText = '<br>'.join(
-                f'<b>Collision avoided:</b> {message}'
-                for message in layout_plan.warnings
+                layout_messages
             )
         else:
             _input(inputs, 'layoutStatus').formattedText = (

@@ -369,6 +369,7 @@ Block execution when:
 - Tooth count is below the hard geometric minimum
 - Root radius is non-positive
 - Bore radius plus a safety wall exceeds the root radius
+- Any shaft bore radius plus 1 mm radial clearance enters the addendum envelope of a gear on another shaft
 - Backlash produces zero or negative tooth thickness
 - Involute parameters are not real
 - The final profile is open or self-intersecting

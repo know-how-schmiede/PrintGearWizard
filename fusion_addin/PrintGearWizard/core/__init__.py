@@ -38,6 +38,7 @@ from .validation import (
     ValidationIssue,
     ValidationSeverity,
     has_errors,
+    validate_shaft_clearances,
     validate_gear_train,
 )
 
@@ -73,5 +74,6 @@ __all__ = [
     'ValidationIssue',
     'ValidationSeverity',
     'has_errors',
+    'validate_shaft_clearances',
     'validate_gear_train',
 ]

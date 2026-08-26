@@ -83,6 +83,14 @@ class ValidationTests(unittest.TestCase):
 
         self.assertTrue(any('difficult to print' in issue.message for issue in issues))
 
+    def test_shaft_clearance_intruding_into_unrelated_gear_is_rejected(self):
+        spec = make_spec(
+            stages=((20, 100), (20, 20)),
+            bores=(5.0, 5.0, 5.0),
+        )
+
+        self.assert_error_contains(spec, 'Shaft 3 plus 1.0 mm clearance intrudes')
+
 
 if __name__ == '__main__':
     unittest.main()
