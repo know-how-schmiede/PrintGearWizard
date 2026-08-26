@@ -4,6 +4,8 @@ This file records all user-visible and technical project changes by release.
 
 ## 0.2.5 — 2026-08-26
 
+- Added a four-image screenshot set covering the generated gear train and all
+  configuration tabs for the version 0.2.5 example.
 - Added plane-independent shaft-envelope clearance validation before geometry creation.
 - Modeled every shaft envelope as its configured bore radius plus 1 mm radial safety clearance.
 - Checked each shaft envelope against the addendum circle of every gear mounted on another shaft.

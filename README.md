@@ -34,6 +34,7 @@ icon, and opens the initial dialog without modifying the active design.
 
 - [Codex implementation guide](docs/CODEX_PROJECT_GUIDE.md)
 - [GitHub repository setup](docs/GITHUB_SETUP.md)
+- [Screenshots](docs/screenshots.md)
 - [Version timeline](docs/version-timeline.md)
 
 ## Trademark notice
