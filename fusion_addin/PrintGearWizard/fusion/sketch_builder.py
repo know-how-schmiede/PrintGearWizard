@@ -82,7 +82,7 @@ def _create_gear_body(
     outline = build_gear_outline(
         geometry,
         gear.teeth,
-        standard.backlash_mm,
+        standard.effective_tooth_clearance_mm,
         standard.involute_samples,
     )
 

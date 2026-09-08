@@ -2,6 +2,15 @@
 
 This file records all user-visible and technical project changes by release.
 
+## 0.2.6 — 2026-08-26
+
+- Added a configurable 0.05 mm safety clearance to the Basic data tab.
+- Applied the safety clearance in addition to mesh backlash as a per-gear
+  tooth-thickness reduction while preserving the standard center distance.
+- Blocked negative safety clearance and combinations that remove the complete
+  tooth thickness; warned about unusually large combined clearance.
+- Added regression coverage for the new validation and tooth reduction.
+
 ## 0.2.5 — 2026-08-26
 
 - Added a four-image screenshot set covering the generated gear train and all

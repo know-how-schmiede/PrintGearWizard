@@ -153,6 +153,12 @@ def _add_basic_data_tab(inputs: adsk.core.CommandInputs):
         'mm',
         adsk.core.ValueInput.createByString('0.15 mm'),
     )
+    tab_inputs.addValueInput(
+        'safetyClearance',
+        'Safety clearance',
+        'mm',
+        adsk.core.ValueInput.createByString('0.05 mm'),
+    )
 
     profile = tab_inputs.addDropDownCommandInput(
         'printProfile',
@@ -351,7 +357,9 @@ def _active_stages(inputs: adsk.core.CommandInputs) -> tuple[StageInput, ...]:
 
 
 def _value_expressions_are_valid(inputs: adsk.core.CommandInputs) -> bool:
-    value_ids = ['module', 'pressureAngle', 'faceWidth', 'backlash']
+    value_ids = [
+        'module', 'pressureAngle', 'faceWidth', 'backlash', 'safetyClearance'
+    ]
     stage_count_input = _input(inputs, 'stageCount')
     if not stage_count_input:
         return False
@@ -369,6 +377,7 @@ def _dialog_spec(inputs: adsk.core.CommandInputs) -> GearTrainSpec:
             pressure_angle_rad=_input(inputs, 'pressureAngle').value,
             face_width_mm=_millimetres(_input(inputs, 'faceWidth')),
             backlash_mm=_millimetres(_input(inputs, 'backlash')),
+            safety_clearance_mm=_millimetres(_input(inputs, 'safetyClearance')),
         ),
         stages=_active_stages(inputs),
         shaft_bores_mm=tuple(

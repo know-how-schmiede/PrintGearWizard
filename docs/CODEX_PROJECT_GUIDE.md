@@ -84,9 +84,10 @@ Visible standard inputs:
 | `pressureAngle` | Pressure angle | Angle input | 20 deg | initially fixed or read-only |
 | `faceWidth` | Gear width | Value input, mm | 8.0 mm | > 0 |
 | `backlash` | Mesh backlash | Value input, mm | 0.15 mm | >= 0 |
+| `safetyClearance` | Safety clearance | Value input, mm | 0.05 mm | >= 0 |
 | `printProfile` | Print profile | Dropdown | FDM Fine | FDM Standard, FDM Fine, Resin, Custom |
 
-The print profile supplies defaults only. Changing a profile may update backlash until the user manually edits the backlash field. Do not silently overwrite a manually changed value.
+The print profile supplies defaults only. Changing a profile may update backlash until the user manually edits the backlash field. Do not silently overwrite a manually changed value. Safety clearance is added to backlash as an additional per-gear tooth-thickness reduction and does not change the standard center distance.
 
 ### 5.2 Gear stages
 
@@ -137,6 +138,7 @@ class GearStandard:
     pressure_angle_rad: float
     face_width_mm: float
     backlash_mm: float
+    safety_clearance_mm: float
     involute_samples: int = 12
 
 

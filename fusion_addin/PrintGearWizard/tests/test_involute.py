@@ -91,6 +91,28 @@ class InvoluteTests(unittest.TestCase):
 
         self.assertLess(addendum_half_angle, corrected_pitch_half_angle)
 
+    def test_additional_clearance_further_reduces_tooth_thickness(self):
+        backlash_only = build_tooth_flanks(self.geometry, 20, 0.15)
+        with_safety_clearance = build_tooth_flanks(self.geometry, 20, 0.20)
+        pitch_index = min(
+            range(len(backlash_only.left)),
+            key=lambda index: abs(
+                point_radius_mm(backlash_only.left[index])
+                - self.geometry.pitch_radius_mm
+            ),
+        )
+
+        self.assertLess(
+            abs(math.atan2(
+                with_safety_clearance.left[pitch_index].y_mm,
+                with_safety_clearance.left[pitch_index].x_mm,
+            )),
+            abs(math.atan2(
+                backlash_only.left[pitch_index].y_mm,
+                backlash_only.left[pitch_index].x_mm,
+            )),
+        )
+
     def test_radius_below_base_is_rejected(self):
         with self.assertRaises(ValueError):
             involute_parameter_at_radius(

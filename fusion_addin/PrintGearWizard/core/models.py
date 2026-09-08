@@ -26,7 +26,14 @@ class GearStandard:
     pressure_angle_rad: float
     face_width_mm: float
     backlash_mm: float
+    safety_clearance_mm: float = 0.05
     involute_samples: int = 12
+
+    @property
+    def effective_tooth_clearance_mm(self) -> float:
+        """Return the total per-gear tooth-thickness reduction."""
+
+        return self.backlash_mm + self.safety_clearance_mm
 
 
 @dataclass(frozen=True)

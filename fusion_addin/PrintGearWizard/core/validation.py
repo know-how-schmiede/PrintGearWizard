@@ -55,6 +55,8 @@ def validate_gear_train(spec: GearTrainSpec) -> tuple[ValidationIssue, ...]:
         _error(issues, 'Gear width must be greater than zero.', 'faceWidth')
     if standard.backlash_mm < 0:
         _error(issues, 'Backlash cannot be negative.', 'backlash')
+    if standard.safety_clearance_mm < 0:
+        _error(issues, 'Safety clearance cannot be negative.', 'safetyClearance')
     if standard.involute_samples < 2:
         _error(issues, 'At least two involute samples are required.')
 
@@ -70,8 +72,13 @@ def validate_gear_train(spec: GearTrainSpec) -> tuple[ValidationIssue, ...]:
             _warning(issues, 'Module below 0.5 mm may be difficult to print.', 'module')
         if standard.backlash_mm < 0.05:
             _warning(issues, 'Backlash below 0.05 mm may be too small for printing.', 'backlash')
-        if standard.backlash_mm > 0.5 * standard.module_mm:
-            _warning(issues, 'Backlash is unusually large for the selected module.', 'backlash')
+        if standard.effective_tooth_clearance_mm > 0.5 * standard.module_mm:
+            _warning(
+                issues,
+                'Combined backlash and safety clearance are unusually large '
+                'for the selected module.',
+                'safetyClearance',
+            )
 
     for shaft_index, bore_mm in enumerate(spec.shaft_bores_mm):
         if bore_mm <= 0:
@@ -198,10 +205,15 @@ def _validate_gear(
 
     pitch_half_angle = pi / (2 * teeth)
     corrected_half_angle = pitch_half_angle - (
-        standard.backlash_mm / (2 * geometry.pitch_radius_mm)
+        standard.effective_tooth_clearance_mm / (2 * geometry.pitch_radius_mm)
     )
     if corrected_half_angle <= 0:
-        _error(issues, f'{label} backlash removes the complete tooth thickness.', 'backlash')
+        _error(
+            issues,
+            f'{label} combined backlash and safety clearance remove the '
+            'complete tooth thickness.',
+            'safetyClearance',
+        )
 
     if shaft_index >= len(spec.shaft_bores_mm):
         return

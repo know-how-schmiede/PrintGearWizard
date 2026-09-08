@@ -17,6 +17,7 @@ def make_spec(
     *,
     module_mm=1.0,
     backlash_mm=0.15,
+    safety_clearance_mm=0.05,
     stages=((20, 40),),
     bores=(5.0, 5.0),
 ):
@@ -26,6 +27,7 @@ def make_spec(
             pressure_angle_rad=math.radians(20),
             face_width_mm=8.0,
             backlash_mm=backlash_mm,
+            safety_clearance_mm=safety_clearance_mm,
         ),
         stages=tuple(StageInput(*stage) for stage in stages),
         shaft_bores_mm=tuple(bores),
@@ -61,6 +63,18 @@ class ValidationTests(unittest.TestCase):
     def test_excessive_backlash_is_rejected(self):
         self.assert_error_contains(
             make_spec(backlash_mm=2.0),
+            'complete tooth thickness',
+        )
+
+    def test_negative_safety_clearance_is_rejected(self):
+        self.assert_error_contains(
+            make_spec(safety_clearance_mm=-0.01),
+            'Safety clearance cannot be negative',
+        )
+
+    def test_excessive_combined_clearance_is_rejected(self):
+        self.assert_error_contains(
+            make_spec(backlash_mm=0.15, safety_clearance_mm=1.85),
             'complete tooth thickness',
         )
 
