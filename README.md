@@ -40,3 +40,13 @@ icon, and opens the initial dialog without modifying the active design.
 ## Trademark notice
 
 Autodesk and Autodesk Fusion are registered trademarks or trademarks of Autodesk, Inc. PrintGearWizard is an independent project and is not affiliated with or endorsed by Autodesk.
+
+## Packaging a Fusion add-in release
+
+From the repository root, check out the release commit and run this command with Git (Bash or Git Bash). It packages the tracked runtime files under the folder name Fusion expects.
+
+```sh
+git archive --format=zip --prefix=PrintGearWizard/ --output=PrintGearWizard-universal.zip --add-file=LICENSE HEAD:fusion_addin/PrintGearWizard -- PrintGearWizard.manifest PrintGearWizard.py AddInIcon.svg commands config.py core fusion lib version.py
+```
+
+Upload `PrintGearWizard-universal.zip` as an asset of a stable GitHub Release. Use a numeric tag such as `v0.2.6` matching the version in `PrintGearWizard.manifest`.
